@@ -1,0 +1,57 @@
+version: '3'
+
+services:
+  # NGINX service for serving static files and proxying requests
+  nginx:
+    container_name: nginx
+    image: nginx:1.25
+    volumes:
+      - ./nginx.conf/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./static:/static
+    depends_on:
+      - app
+    ports:
+      - '80:80'
+    networks:
+      - frontend-network
+
+
+  # Application service
+  app:
+    container_name: gutendex_app
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend-network
+      - frontend-network
+
+
+  # PostgreSQL database service
+  db:
+    container_name: PostgreSQL_db
+    image: postgres:14
+    volumes:
+      - data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: postgres
+      POSTGRES_DB: gutendex
+      PGDATA: /var/lib/postgresql/data/pgdata
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "gutendex"] 
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    networks:
+      - backend-network
+      
+
+
+networks:
+  frontend-network:
+  backend-network:
+
+volumes:
+  data:  
